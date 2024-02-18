@@ -46,7 +46,7 @@ class DroneController(Node):
         dy = abs(y - self.target[self.next_target][1])
 
         if dx < 0.25 and dy < 0.25:
-            self.target += 1
+            self.next_target += 1
             if self.next_target > len(self.target) -1:
                 self.next_target = 0
 
