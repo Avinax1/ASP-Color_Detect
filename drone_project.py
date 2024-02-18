@@ -5,8 +5,8 @@ from geometry_msgs.msg import Twist, Pose
 
 """ 
 Wybrany znak: D
-Pętla:
-Płaszczyzna: z=20
+Pętla: Nie
+Płaszczyzna: XZ
 """
 
 
