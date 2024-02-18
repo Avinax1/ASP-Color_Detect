@@ -24,7 +24,7 @@ class DroneController(Node):
 
         self.command_pub = self.create_publisher(Twist, '/drone/cmd_vel', 10)
 
-        timer_period = 0.25
+        timer_period = 1
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
         self.target = [[10.0, 0.0], [0.0, 2.5], [-2.5, 0.75], [-2.5, 0.5], [-2.5, -0.5], [-2.5, -0.75], [0.0, -2.5], [0.0, 2.5], [2.5, 0.75], [2.5, 0.5], [2.5, -0.5], [2.5, -0.75], [0.0, -2.5], [-10.0, 0.0]]
