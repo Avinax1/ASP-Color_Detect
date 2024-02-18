@@ -27,7 +27,7 @@ class DroneController(Node):
         timer_period = 0.25
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
-        self.target = [[10.0, 0.0], [0.0, 2.5], [-2.5, 0.75], [-2.5, 0.75], [-2.5, -0.75], [-2.5, -0.75], [-2.5, -0.75], [0.0, -2.5]]
+        self.target = [[10.0, 0.0], [0.0, 2.5], [-2.5, 0.75], [-2.5, 0.5], [-2.5, -0.5], [-2.5, -0.75], [0.0, -2.5]]
         self.next_target = 0
     
     def pose_callback(self, data):
