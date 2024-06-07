@@ -251,16 +251,19 @@ class TelloController:
 
     def lab_mission_func_count_colors(self):
 
-        if self.area > 10000:
+        if self.area > 100:
             if self.color_name == "Blue":
-                self.MissionSequence.append("Blue")
-                print("Added Blue")
+                #self.MissionSequence.append("Blue")
+                #print("Added Blue")
+                pass
             elif self.color_name == "Green":
                 self.MissionSequence.append("Green")
-                print("Added Green")
+                #self.green_box_center = True
+                #print("Added Green")
             elif self.color_name == "Red":
-                self.MissionSequence.append("Red")
-                print("Added Red")
+                #self.MissionSequence.append("Red")
+                #print("Added Red")
+                pass
         else:
             pass
 
@@ -297,11 +300,16 @@ class TelloController:
                             (0, SizeThresholdColor, 0), 1)
                 cv2.putText(frame, f"Horizontal: {Horizontal:.2f}", (x, y + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                             (255, 255, HorizontalColor), 1)
-                # cv2.putText(frame, f"Mission Sequence: {MissionSequence[0]:.2f}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                # (255, 255, HorizontalColor), 1)
-                # cv2.putText(frame, f"Color: {mean_color}", (x, y + 45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                cv2.putText(frame, f"X Error: {self.error_x:.2f}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                (255, 255, 255), 1)
+                cv2.putText(frame, f"Control X: {self.control_x:.2f}", (50, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (255, 255, 255), 1)
 
-                # if len.MissionSequence
+                # Save the center of the green box
+                if color_name == "Green":
+                    self.green_box_center = (x + w // 2, y + h // 2)
+                    print(f"Green box center assigned: {self.green_box_center}")  # Debugging statement
+
 
     def lab_mission_func(self):
 
@@ -417,6 +425,39 @@ class TelloController:
 
     def project_mission_func(self):
         frame_read = self.tello_drone.get_frame_read()
+        self.tello_drone.takeoff()
+
+        # Create a window
+        cv2.namedWindow("Trackbars", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("Trackbars", 1000, 1000)  # Set the desired size
+
+        # Create trackbars for color change
+        cv2.createTrackbar("Blue Lower Hue", "Trackbars", 94, 180, self.nothing)
+        cv2.createTrackbar("Blue Upper Hue", "Trackbars", 150, 180, self.nothing)
+        cv2.createTrackbar("Blue Lower Sat", "Trackbars", 50, 255, self.nothing)
+        cv2.createTrackbar("Blue Upper Sat", "Trackbars", 255, 255, self.nothing)
+        cv2.createTrackbar("Blue Lower Val", "Trackbars", 50, 255, self.nothing)
+        cv2.createTrackbar("Blue Upper Val", "Trackbars", 255, 255, self.nothing)
+
+        cv2.createTrackbar("Red Lower Hue 1", "Trackbars", 0, 180, self.nothing)
+        cv2.createTrackbar("Red Upper Hue 1", "Trackbars", 4, 180, self.nothing)
+        cv2.createTrackbar("Red Lower Hue 2", "Trackbars", 160, 180, self.nothing)
+        cv2.createTrackbar("Red Upper Hue 2", "Trackbars", 180, 180, self.nothing)
+        cv2.createTrackbar("Red Lower Sat", "Trackbars", 156, 255, self.nothing)
+        cv2.createTrackbar("Red Upper Sat", "Trackbars", 255, 255, self.nothing)
+        cv2.createTrackbar("Red Lower Val", "Trackbars", 100, 255, self.nothing)
+        cv2.createTrackbar("Red Upper Val", "Trackbars", 255, 255, self.nothing)
+
+        cv2.createTrackbar("Green Lower Hue", "Trackbars", 45, 180, self.nothing)
+        cv2.createTrackbar("Green Upper Hue", "Trackbars", 85, 180, self.nothing)
+        cv2.createTrackbar("Green Lower Sat", "Trackbars", 50, 255, self.nothing)
+        cv2.createTrackbar("Green Upper Sat", "Trackbars", 255, 255, self.nothing)
+        cv2.createTrackbar("Green Lower Val", "Trackbars", 50, 255, self.nothing)
+        cv2.createTrackbar("Green Upper Val", "Trackbars", 255, 255, self.nothing)
+        self.MissionSequence = []
+
+
+        self.error_x = 0
 
         while True:
             frame = frame_read.frame
@@ -429,55 +470,118 @@ class TelloController:
             frame = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
             hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-            blue_lower = np.array([100, 50, 50], np.uint8)
-            blue_upper = np.array([140, 255, 255], np.uint8)
+            # Get current positions of the trackbars
+            blue_lower_hue = cv2.getTrackbarPos("Blue Lower Hue", "Trackbars")
+            blue_upper_hue = cv2.getTrackbarPos("Blue Upper Hue", "Trackbars")
+            blue_lower_sat = cv2.getTrackbarPos("Blue Lower Sat", "Trackbars")
+            blue_upper_sat = cv2.getTrackbarPos("Blue Upper Sat", "Trackbars")
+            blue_lower_val = cv2.getTrackbarPos("Blue Lower Val", "Trackbars")
+            blue_upper_val = cv2.getTrackbarPos("Blue Upper Val", "Trackbars")
+
+            red_lower_hue1 = cv2.getTrackbarPos("Red Lower Hue 1", "Trackbars")
+            red_upper_hue1 = cv2.getTrackbarPos("Red Upper Hue 1", "Trackbars")
+            red_lower_hue2 = cv2.getTrackbarPos("Red Lower Hue 2", "Trackbars")
+            red_upper_hue2 = cv2.getTrackbarPos("Red Upper Hue 2", "Trackbars")
+            red_lower_sat = cv2.getTrackbarPos("Red Lower Sat", "Trackbars")
+            red_upper_sat = cv2.getTrackbarPos("Red Upper Sat", "Trackbars")
+            red_lower_val = cv2.getTrackbarPos("Red Lower Val", "Trackbars")
+            red_upper_val = cv2.getTrackbarPos("Red Upper Val", "Trackbars")
+
+            green_lower_hue = cv2.getTrackbarPos("Green Lower Hue", "Trackbars")
+            green_upper_hue = cv2.getTrackbarPos("Green Upper Hue", "Trackbars")
+            green_lower_sat = cv2.getTrackbarPos("Green Lower Sat", "Trackbars")
+            green_upper_sat = cv2.getTrackbarPos("Green Upper Sat", "Trackbars")
+            green_lower_val = cv2.getTrackbarPos("Green Lower Val", "Trackbars")
+            green_upper_val = cv2.getTrackbarPos("Green Upper Val", "Trackbars")
+
+            # Define HSV range for blue, red, and green colors
+            blue_lower = np.array([blue_lower_hue, blue_lower_sat, blue_lower_val], np.uint8)
+            blue_upper = np.array([blue_upper_hue, blue_upper_sat, blue_upper_val], np.uint8)
+            red_lower1 = np.array([red_lower_hue1, red_lower_sat, red_lower_val], np.uint8)
+            red_upper1 = np.array([red_upper_hue1, red_upper_sat, red_upper_val], np.uint8)
+            red_lower2 = np.array([red_lower_hue2, red_lower_sat, red_lower_val], np.uint8)
+            red_upper2 = np.array([red_upper_hue2, red_upper_sat, red_upper_val], np.uint8)
+            green_lower = np.array([green_lower_hue, green_lower_sat, green_lower_val], np.uint8)
+            green_upper = np.array([green_upper_hue, green_upper_sat, green_upper_val], np.uint8)
+
+            # Create masks for blue, red, and green colors
             blue_mask = cv2.inRange(hsvFrame, blue_lower, blue_upper)
+            red_mask1 = cv2.inRange(hsvFrame, red_lower1, red_upper1)
+            red_mask2 = cv2.inRange(hsvFrame, red_lower2, red_upper2)
+            red_mask = cv2.bitwise_or(red_mask1, red_mask2)
+            green_mask = cv2.inRange(hsvFrame, green_lower, green_upper)
 
+            # Dilate masks to fill in gaps
             kernel = np.ones((5, 5), "uint8")
-
             blue_mask = cv2.dilate(blue_mask, kernel)
-            res_blue = cv2.bitwise_and(frame, frame, mask=blue_mask)
+            red_mask = cv2.dilate(red_mask, kernel)
+            green_mask = cv2.dilate(green_mask, kernel)
 
-            contours, hierarchy = cv2.findContours(blue_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-            for pic, contour in enumerate(contours):
-                area = cv2.contourArea(contour)
+            # Find contours and label them
+            self.process_color(frame, blue_mask, "Blue", (255, 0, 0))
+            self.process_color(frame, red_mask, "Red", (0, 0, 255))
+            self.process_color(frame, green_mask, "Green", (0, 255, 0))
 
-                if area > 10000:
-                    SizeThresholdColor = 255
-                else:
-                    SizeThresholdColor = 0
+            '''
+            if self.green_box_center:
+                frame_height, frame_width, _ = frame.shape
+                frame_center = (frame_width // 2, frame_height // 2)
+                self.error_x = self.green_box_center[0] - frame_center[0]
+                error_y = self.green_box_center[1] - frame_center[1]
 
-                if area > 4000:
-                    x, y, w, h = cv2.boundingRect(contour)
-                    height, width, _ = frame.shape
-                    Horizontal = x / width
-                    HorizontalColor = 255*Horizontal
+                # Define thresholds for movement
+                threshold_x = 20
+                threshold_y = 20
 
-                    frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                    cv2.putText(frame, "Blue Colour", (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0))
-                    cv2.putText(frame, str(area), (x, y+75), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, SizeThresholdColor, 0))
-                    cv2.putText(frame, str(Horizontal), (x, y + 150), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, HorizontalColor))
-
-
-                    if area > 10000:
-
-                        if (x+(w/2)) / int(width) < 0.45:
-                            continue
-                            #HorizontalColor =
-                        elif (x+(w/2)) / int(width) > 0.55:
-                            continue
-                        else:
-                            print('On point')
+                # Adjust the drone position
+                if abs(self.error_x) > threshold_x:
+                    if self.error_x > 0:
+                        self.tello_drone.send_rc_control(20, 0, 0, 0)  # Move right
                     else:
-                        SizeThresholdColor = 0
-                    continue
+                        self.tello_drone.send_rc_control(-20, 0, 0, 0)  # Move left
+                if abs(error_y) > threshold_y:
+                    if error_y > 0:
+                        self.tello_drone.send_rc_control(0, 0, -20, 0)  # Move down
+                    else:
+                        self.tello_drone.send_rc_control(0, 0, 20, 0)  # Move up
+            '''
 
+            if self.green_box_center:
+                frame_height, frame_width, _ = frame.shape
+                frame_center = (frame_width // 2, frame_height // 2)
+                self.error_x = self.green_box_center[0] - frame_center[0]
+                self.error_y = self.green_box_center[1] - frame_center[1]
 
+                # Proportional control constants
+                kx = 0.1
+                ky = 0.1
+
+                # Control signals
+                self.control_x = int(kx * self.error_x)
+                control_y = int(ky * self.error_y)
+
+                # Adjust drone's position
+                self.tello_drone.send_rc_control(0, 0, control_y, self.control_x)
 
             cv2.imshow("Multiple Color Detection in Real-Time", frame)
 
+            if len(self.MissionSequence) == 3:
+                print("Executing Mission Sequence:", self.MissionSequence)
+                # Perform the tasks based on the MissionSequence list
+                for task in self.MissionSequence:
+                    # Perform each task here based on the value in the MissionSequence list
+                    print("Performing task:", task)
+                break  # Exit the loop once the MissionSequence is complete
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
+        #self.tello_drone.streamoff()
+        #cv2.destroyAllWindows()
+            #cv2.imshow("Multiple Color Detection in Real-Time", frame)
+
+            #if cv2.waitKey(1) & 0xFF == ord('q'):
+                #break
 
 
     def __init__(self):
@@ -499,7 +603,8 @@ class TelloController:
         self.color_name = "None"
         self.area = 0
         self.MissionSequence = []
-
+        self.green_box_center = []
+        self.control_x = 0
         #self.battery_check = self.TelloTimer(1, self.stop_controller, self.battery_check_func)
         #self.battery_check.start()
 
@@ -525,10 +630,12 @@ class TelloController:
 
         #self.onboard_camera_func()
 
-        self.lab_mission_func_count_colors = self.TelloTimer(3, self.stop_controller, self.lab_mission_func_count_colors)
+        self.lab_mission_func_count_colors = self.TelloTimer(5, self.stop_controller, self.lab_mission_func_count_colors)
         self.lab_mission_func_count_colors.start()
 
-        self.lab_mission_func()
+        #self.lab_mission_func()
+
+        self.project_mission_func()
 
         #self.horizon_func()
 
@@ -536,7 +643,7 @@ class TelloController:
 
         #self.mission_func_2()
 
-        #self.project_mission_func()
+
 
         time.sleep(5)
 
