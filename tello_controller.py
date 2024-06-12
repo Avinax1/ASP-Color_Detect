@@ -251,20 +251,30 @@ class TelloController:
 
     def lab_mission_func_count_colors(self):
 
-        if self.area > 100:
+        if self.area > 10000 and len(self.MissionSequence) < 3:
             if self.color_name == "Blue":
-                #self.MissionSequence.append("Blue")
-                #print("Added Blue")
-                pass
+                self.MissionSequence.append("Blue")
+                self.tello_drone.send_rc_control(0,0,0,0)
+                print("Added Blue")
+                print(str(self.area))
+                time.sleep(3)
             elif self.color_name == "Green":
                 self.MissionSequence.append("Green")
-                #self.green_box_center = True
-                #print("Added Green")
+                self.tello_drone.send_rc_control(0, 0, 0, 0)
+                print("Added Green")
+                print(str(self.area))
+                time.sleep(3)
             elif self.color_name == "Red":
-                #self.MissionSequence.append("Red")
-                #print("Added Red")
-                pass
+                self.MissionSequence.append("Red")
+                self.tello_drone.send_rc_control(0, 0, 0, 0)
+                print("Added Red")
+                print(str(self.area))
+                time.sleep(3)
         else:
+            print("no color detected")
+            self.tello_drone.send_rc_control(0, 0, 0, 0)
+            print(str(self.area))
+            time.sleep(1)
             pass
 
     def nothing(x):
@@ -273,16 +283,14 @@ class TelloController:
     def process_color(self, frame, mask, color_name, color_bgr):
         self.color_name = color_name
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        cnt = 0
         for pic, contour in enumerate(contours):
             self.area = cv2.contourArea(contour)
-            cnt += 0.033
             if self.area > 10000:
                 SizeThresholdColor = 255
             else:
                 SizeThresholdColor = 0
 
-            if self.area > 4000:
+            if self.area > 7000:
                 x, y, w, h = cv2.boundingRect(contour)
                 height, width, _ = frame.shape
                 Horizontal = x / width
@@ -294,27 +302,30 @@ class TelloController:
                 mean_color = cv2.mean(frame_roi, mask=mask_roi)[:3]
 
                 frame = cv2.rectangle(frame, (x, y), (x + w, y + h), color_bgr, 2)
-                cv2.putText(frame, f"{color_name} Colour", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                cv2.putText(frame, f"{self.color_name} Colour", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                             color_bgr, 1)
                 cv2.putText(frame, f"Area: {self.area}", (x, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                             (0, SizeThresholdColor, 0), 1)
                 cv2.putText(frame, f"Horizontal: {Horizontal:.2f}", (x, y + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                             (255, 255, HorizontalColor), 1)
-                cv2.putText(frame, f"X Error: {self.error_x:.2f}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                (255, 255, 255), 1)
-                cv2.putText(frame, f"Control X: {self.control_x:.2f}", (50, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                            (255, 255, 255), 1)
+                #cv2.putText(frame, f"Mission Sequence: {self.MissionSequence:.2f}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                #(255, 255, HorizontalColor), 1)
+                #cv2.putText(frame, f"X Error: {self.error_x:.2f}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                #(255, 255, 255), 1)
+                #cv2.putText(frame, f"Control X: {self.control_x:.2f}", (50, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            #(255, 255, 255), 1)
 
                 # Save the center of the green box
-                if color_name == "Green":
-                    self.green_box_center = (x + w // 2, y + h // 2)
-                    print(f"Green box center assigned: {self.green_box_center}")  # Debugging statement
+                #if color_name == "Green":
+                    #self.green_box_center = (x + w // 2, y + h // 2)
+                    #print(f"Green box center assigned: {self.green_box_center}")  # Debugging statement
 
 
     def lab_mission_func(self):
 
         frame_read = self.tello_drone.get_frame_read()
-
+        self.tello_drone.set_speed(10)
+        self.tello_drone.takeoff()
         # Create a window
         cv2.namedWindow("Trackbars", cv2.WINDOW_NORMAL)
         cv2.resizeWindow("Trackbars", 1000, 1000)  # Set the desired size
@@ -411,14 +422,25 @@ class TelloController:
 
 
             cv2.imshow("Multiple Color Detection in Real-Time", frame)
-
+            #'''
             if len(self.MissionSequence) == 3:
                 print("Executing Mission Sequence:", self.MissionSequence)
                 # Perform the tasks based on the MissionSequence list
                 for task in self.MissionSequence:
-                    # Perform each task here based on the value in the MissionSequence list
-                    print("Performing task:", task)
-                break  # Exit the loop once the MissionSequence is complete
+                    if task == "Blue":
+                        print("Performing task:", task)
+                    elif task == "Green":
+                        self.tello_drone.rotate_clockwise(90)
+                        print("Performing task:", task)
+                    else:
+                        self.tello_drone.rotate_counter_clockwise(90)
+                        print("Performing task:", task)
+                    continue
+                self.MissionSequence.clear()
+                print("landing")
+                self.tello_drone.land()  # Exit the loop once the MissionSequence is complete
+                self.tello_drone.reboot()
+            #'''
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -630,12 +652,12 @@ class TelloController:
 
         #self.onboard_camera_func()
 
-        self.lab_mission_func_count_colors = self.TelloTimer(5, self.stop_controller, self.lab_mission_func_count_colors)
+        self.lab_mission_func_count_colors = self.TelloTimer(0.1, self.stop_controller, self.lab_mission_func_count_colors)
         self.lab_mission_func_count_colors.start()
 
-        #self.lab_mission_func()
+        self.lab_mission_func()
 
-        self.project_mission_func()
+        #self.project_mission_func()
 
         #self.horizon_func()
 
