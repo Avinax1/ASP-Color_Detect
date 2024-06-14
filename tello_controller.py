@@ -285,12 +285,12 @@ class TelloController:
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         for pic, contour in enumerate(contours):
             self.area = cv2.contourArea(contour)
-            if self.area > 10000:
+            if self.area > 15000:
                 SizeThresholdColor = 255
             else:
                 SizeThresholdColor = 0
 
-            if self.area > 7000:
+            if self.area > 3000:
                 x, y, w, h = cv2.boundingRect(contour)
                 height, width, _ = frame.shape
                 Horizontal = x / width
@@ -310,15 +310,24 @@ class TelloController:
                             (255, 255, HorizontalColor), 1)
                 #cv2.putText(frame, f"Mission Sequence: {self.MissionSequence:.2f}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                 #(255, 255, HorizontalColor), 1)
-                #cv2.putText(frame, f"X Error: {self.error_x:.2f}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                #(255, 255, 255), 1)
-                #cv2.putText(frame, f"Control X: {self.control_x:.2f}", (50, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                            #(255, 255, 255), 1)
+                cv2.putText(frame, f"X Error: {self.error_x:.2f}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                (255, 255, 255), 1)
+                cv2.putText(frame, f"Y Error: {self.error_y:.2f}", (50, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (255, 255, 255), 1)
+                cv2.putText(frame, f"Z Error: {self.error_z:.2f}", (50, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (255, 255, 255), 1)
+                cv2.putText(frame, f"P Input: {self.control_x:.2f}", (200, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (255, 255, 255), 1)
+                cv2.putText(frame, f"Y Input: {self.control_y:.2f}", (200, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (255, 255, 255), 1)
+                cv2.putText(frame, f"Z Input: {self.control_z:.2f}", (200, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (255, 255, 255), 1)
 
                 # Save the center of the green box
-                #if color_name == "Green":
-                    #self.green_box_center = (x + w // 2, y + h // 2)
-                    #print(f"Green box center assigned: {self.green_box_center}")  # Debugging statement
+                if color_name == "Blue":
+                    self.green_box_center = (x + w // 2, y + h // 2)
+                    self.betterarea = w * h
+                    print(f"Green box center assigned: {self.green_box_center}")  # Debugging statement
 
 
     def lab_mission_func(self):
@@ -422,7 +431,7 @@ class TelloController:
 
 
             cv2.imshow("Multiple Color Detection in Real-Time", frame)
-            #'''
+            '''
             if len(self.MissionSequence) == 3:
                 print("Executing Mission Sequence:", self.MissionSequence)
                 # Perform the tasks based on the MissionSequence list
@@ -440,7 +449,7 @@ class TelloController:
                 print("landing")
                 self.tello_drone.land()  # Exit the loop once the MissionSequence is complete
                 self.tello_drone.reboot()
-            #'''
+            '''
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -448,7 +457,7 @@ class TelloController:
     def project_mission_func(self):
         frame_read = self.tello_drone.get_frame_read()
         self.tello_drone.takeoff()
-
+        self.tello_drone.set_speed(10)
         # Create a window
         cv2.namedWindow("Trackbars", cv2.WINDOW_NORMAL)
         cv2.resizeWindow("Trackbars", 1000, 1000)  # Set the desired size
@@ -480,6 +489,8 @@ class TelloController:
 
 
         self.error_x = 0
+        self.error_y = 0
+        self.error_z = 0
 
         while True:
             frame = frame_read.frame
@@ -563,7 +574,7 @@ class TelloController:
                         self.tello_drone.send_rc_control(-20, 0, 0, 0)  # Move left
                 if abs(error_y) > threshold_y:
                     if error_y > 0:
-                        self.tello_drone.send_rc_control(0, 0, -20, 0)  # Move down
+                        self.tello_drone.send_ rc_control(0, 0, -20, 0)  # Move down
                     else:
                         self.tello_drone.send_rc_control(0, 0, 20, 0)  # Move up
             '''
@@ -573,20 +584,26 @@ class TelloController:
                 frame_center = (frame_width // 2, frame_height // 2)
                 self.error_x = self.green_box_center[0] - frame_center[0]
                 self.error_y = self.green_box_center[1] - frame_center[1]
+                self.error_z = self.betterarea - 15000
 
                 # Proportional control constants
-                kx = 0.1
-                ky = 0.1
+                kx = 0.15
+                ky = 0.15
+                kz = 0.001
 
                 # Control signals
                 self.control_x = int(kx * self.error_x)
-                control_y = int(ky * self.error_y)
+                self.control_y = int(-ky * self.error_y)
+                self.control_z = int(-kz * self.error_z )
 
                 # Adjust drone's position
-                self.tello_drone.send_rc_control(0, 0, control_y, self.control_x)
+                self.tello_drone.send_rc_control(0, self.control_z, self.control_y, self.control_x)
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
 
             cv2.imshow("Multiple Color Detection in Real-Time", frame)
-
+            '''
             if len(self.MissionSequence) == 3:
                 print("Executing Mission Sequence:", self.MissionSequence)
                 # Perform the tasks based on the MissionSequence list
@@ -594,16 +611,10 @@ class TelloController:
                     # Perform each task here based on the value in the MissionSequence list
                     print("Performing task:", task)
                 break  # Exit the loop once the MissionSequence is complete
-
+            '''
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-        #self.tello_drone.streamoff()
-        #cv2.destroyAllWindows()
-            #cv2.imshow("Multiple Color Detection in Real-Time", frame)
-
-            #if cv2.waitKey(1) & 0xFF == ord('q'):
-                #break
 
 
     def __init__(self):
@@ -627,6 +638,10 @@ class TelloController:
         self.MissionSequence = []
         self.green_box_center = []
         self.control_x = 0
+        self.control_y = 0
+        self.control_z = 0
+        self.betterarea = 0
+
         #self.battery_check = self.TelloTimer(1, self.stop_controller, self.battery_check_func)
         #self.battery_check.start()
 
@@ -652,12 +667,12 @@ class TelloController:
 
         #self.onboard_camera_func()
 
-        self.lab_mission_func_count_colors = self.TelloTimer(0.1, self.stop_controller, self.lab_mission_func_count_colors)
-        self.lab_mission_func_count_colors.start()
+        #self.lab_mission_func_count_colors = self.TelloTimer(0.1, self.stop_controller, self.lab_mission_func_count_colors)
+        #self.lab_mission_func_count_colors.start()
 
-        self.lab_mission_func()
+        #self.lab_mission_func()
 
-        #self.project_mission_func()
+        self.project_mission_func()
 
         #self.horizon_func()
 
